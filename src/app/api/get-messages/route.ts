@@ -38,6 +38,13 @@ export async function GET (request: Request){
                 }, {status: 200}
             )
        } catch (error) {
-        console.error('User not found', error);
+        console.error('An unexpected error occured', error);
+        return Response.json(
+                {
+                    success: false,
+                    message: 'Unexpected error occured'
+                }, {status: 500}
+            )
        }
+
 }
