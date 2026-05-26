@@ -1,24 +1,37 @@
-import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import OpenAI from 'openai';
 
-export const runtime = 'edge';
+const FALLBACK = [
+    "What's something you've always wanted to tell me?",
+    "What's your favorite memory of us?",
+    "If you could give me one piece of advice, what would it be?"
+]
 
-export async function POST(req: Request) {
+const client = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+})
+
+export async function POST() {
     try {
-        const prompt = "Create a list of three open-ended and engaging questions formatted as a single string. Each question should be separated by '||'. These questions are for an anonymous social messaging platform, like Qooh.me, and should be suitable for a diverse audience. Avoid personal or sensitive topics, focusing instead on universal themes that encourage friendly interaction. Example output: 'What hobby have you recently started? || If you could have dinner with any historical figure, who would it be? || What simple thing makes you happy?'"
+        const prompt = "Create a list of three open-ended and engaging questions for an anonymous social messaging platform. Return ONLY the three questions separated by '||' with no extra text, numbering, or formatting. Example: What hobby have you recently started? || If you could have dinner with any historical figure, who would it be? || What simple thing makes you happy?"
 
-        const result = streamText({  // ✅ NO await
-            model: openai('gpt-4o'),
-            prompt,
-        });
+        const response = await client.chat.completions.create({
+            model: 'gpt-3.5-turbo',
+            messages: [{ role: 'user', content: prompt }],
+            max_tokens: 200,
+            temperature: 0.9,
+        })
 
-        return result.toTextStreamResponse();
+        const text = response.choices[0]?.message?.content?.trim() || ''
+        const suggestions = text.split('||').map((s) => s.trim()).filter(Boolean).slice(0, 3)
+
+        if (suggestions.length === 0) {
+            return Response.json({ success: true, suggestions: FALLBACK })
+        }
+
+        return Response.json({ success: true, suggestions })
 
     } catch (error) {
-        console.error('Error:', error);
-        return new Response(
-            JSON.stringify({ message: 'Internal server error' }),
-            { status: 500 }
-        );
+        console.error('Suggestions error:', error)
+        return Response.json({ success: true, suggestions: FALLBACK })
     }
 }
