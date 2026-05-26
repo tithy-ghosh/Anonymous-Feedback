@@ -85,8 +85,15 @@ export default function SignUpPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (usernameStatus !== "available") {
-      toast.error("Please choose a different username")
+
+    // If still checking, wait — don't block with a misleading error
+    if (usernameStatus === "checking") {
+      toast.info("Still checking username, please wait a moment...")
+      return
+    }
+
+    if (usernameStatus === "taken") {
+      toast.error("That username is already taken. Please choose another.")
       return
     }
 
@@ -284,7 +291,7 @@ export default function SignUpPage() {
               size="lg"
               className="w-full"
               loading={isSubmitting}
-              disabled={usernameStatus !== "available" || isSubmitting}
+              disabled={usernameStatus === "taken" || usernameStatus === "checking" || isSubmitting}
             >
               {isSubmitting ? "Creating account..." : "Create account"}
               {!isSubmitting && <ArrowRight className="h-4 w-4" />}
